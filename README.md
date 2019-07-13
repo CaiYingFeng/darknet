@@ -2,9 +2,9 @@
 # Description
 A darknet fork with compact interface(to do)
 ### todo
-- [ ]add interface
-- [ ]test
-- [ ]update readme
+- [ ] add interface
+- [ ] test
+- [ ] update readme
 # Darknet #
 Darknet is an open source neural network framework written in C and CUDA. It is fast, easy to install, and supports CPU and GPU computation.
 
