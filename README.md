@@ -89,7 +89,8 @@ bicycle: 98%
 16.000000 121.000000 228.000000 197.031525 283.358337 0.000000
 ```
 ---
-#批量模式
+[原仓库](https://github.com/wuxiaolang/darknet)
+# 批量模式
 ## 0. 主要工作：
 + 在 [**darknet.c**](https://github.com/wuxiaolang/darknet/blob/master/examples/darknet.c?1552372879559) 中添加了 `detect_tum_batch` 命令；
 + 在 [**detector.c**](https://github.com/wuxiaolang/darknet/blob/master/examples/detector.c?1552372948327) 中添加了**读取数据集图片**的函数 `test_detector_tum_batch()`；
