@@ -220,6 +220,7 @@ void draw_bbox(image a, box bbox, int w, float r, float g, float b)
     }
 }
 
+// BRIEF 加载位于/data/labels下的图像作为字符集.
 image **load_alphabet()
 {
     int i, j;
@@ -236,26 +237,49 @@ image **load_alphabet()
     return alphabets;
 }
 
-void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes)
+// BRIEF 绘制并输出结果.
+void draw_save_detections(  image im, 
+                            detection *dets, 
+                            int num, 
+                            float thresh, 
+                            char **names, 
+                            image **alphabet, 
+                            int classes,
+                            FILE *save_txt)
 {
     int i,j;
 
-    for(i = 0; i < num; ++i){
+    // 遍历每一个候选框.
+    for(i = 0; i < num; ++i)
+    {
         char labelstr[4096] = {0};
         int class = -1;
-        for(j = 0; j < classes; ++j){
-            if (dets[i].prob[j] > thresh){
-                if (class < 0) {
+        // 类别
+        for(j = 0; j < classes; ++j)
+        {
+            if (dets[i].prob[j] > thresh)
+            {
+                if (class < 0) 
+                {
                     strcat(labelstr, names[j]);
                     class = j;
-                } else {
+                } 
+                else 
+                {
                     strcat(labelstr, ", ");
                     strcat(labelstr, names[j]);
                 }
+                // 输出结果 dog: 82%
                 printf("%s: %.0f%%\n", names[j], dets[i].prob[j]*100);
             }
         }
-        if(class >= 0){
+        // class 为 coco.name 中的类别序号.
+        if(class >= 0)
+        {
+            // NOTE 只筛选出 "cup" 和 "bottle" 类别.
+            // if ((strcmp(names[class], "cup") != 0)&&(strcmp(names[class], "bottle") != 0))
+            //     {continue;}
+
             int width = im.h * .006;
 
             /*
@@ -263,7 +287,7 @@ void draw_detections(image im, detection *dets, int num, float thresh, char **na
                width = pow(prob, 1./2.)*10+1;
                alphabet = 0;
                }
-             */
+            */
 
             //printf("%d %s: %.0f%%\n", i, names[class], prob*100);
             int offset = class*123457 % classes;
@@ -280,23 +304,139 @@ void draw_detections(image im, detection *dets, int num, float thresh, char **na
             box b = dets[i].bbox;
             //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
 
+            // NOTE 左上角坐标和右下脚坐标
             int left  = (b.x-b.w/2.)*im.w;
-            int right = (b.x+b.w/2.)*im.w;
             int top   = (b.y-b.h/2.)*im.h;
+            int right = (b.x+b.w/2.)*im.w;
             int bot   = (b.y+b.h/2.)*im.h;
 
             if(left < 0) left = 0;
             if(right > im.w-1) right = im.w-1;
             if(top < 0) top = 0;
             if(bot > im.h-1) bot = im.h-1;
+            
+            // NOTE 分别写入类别、坐标和置信度.
+            fprintf(save_txt,"%s\t%d\t%d\t%d\t%d\t%.2f\n", names[class], left, top, right-left, bot-top, dets[i].prob[class]);
+            //fprintf(save_txt,"%d %d %d %d %d %f\n", class, left, top, right-left, bot-top, dets[i].prob[class]);
+            printf("left, top, right, bot：%d %d %d %d %f\n", left, top, right, bot, dets[i].prob[class]);
 
+            // 绘制边框.
             draw_box_width(im, left, top, right, bot, width, red, green, blue);
-            if (alphabet) {
+            // 绘制标签.
+            if (alphabet) 
+            {
                 image label = get_label(alphabet, labelstr, (im.h*.03));
                 draw_label(im, top + width, left, label, rgb);
                 free_image(label);
             }
-            if (dets[i].mask){
+
+            if (dets[i].mask)
+            {
+                image mask = float_to_image(14, 14, 1, dets[i].mask);
+                image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
+                image tmask = threshold_image(resized_mask, .5);
+                embed_image(tmask, im, left, top);
+                free_image(mask);
+                free_image(resized_mask);
+                free_image(tmask);
+            }
+        }
+    }
+}
+
+// BRIEF 绘制结果.
+void draw_detections(   image im, 
+                        detection *dets, 
+                        int num, 
+                        float thresh, 
+                        char **names, 
+                        image **alphabet, 
+                        int classes)
+{
+    int i,j;
+
+    // 遍历每一个候选框.
+    for(i = 0; i < num; ++i)
+    {
+        char labelstr[4096] = {0};
+        int class = -1;
+        // 类别
+        for(j = 0; j < classes; ++j)
+        {
+            if (dets[i].prob[j] > thresh)
+            {
+                if (class < 0) 
+                {
+                    strcat(labelstr, names[j]);
+                    class = j;
+                } 
+                else 
+                {
+                    strcat(labelstr, ", ");
+                    strcat(labelstr, names[j]);
+                }
+                // 输出结果 dog: 82%
+                printf("%s: %.0f%%\n", names[j], dets[i].prob[j]*100);
+            }
+        }
+        // class 为 coco.name 中的类别序号.
+        if(class >= 0)
+        {
+            // NOTE 只筛选出 "cup" 和 "bottle" 类别.
+            // if ((strcmp(names[class], "cup") != 0)&&(strcmp(names[class], "bottle") != 0))
+            //     {continue;}
+
+            int width = im.h * .006;
+
+            /*
+               if(0){
+               width = pow(prob, 1./2.)*10+1;
+               alphabet = 0;
+               }
+            */
+
+            //printf("%d %s: %.0f%%\n", i, names[class], prob*100);
+            int offset = class*123457 % classes;
+            float red = get_color(2,offset,classes);
+            float green = get_color(1,offset,classes);
+            float blue = get_color(0,offset,classes);
+            float rgb[3];
+
+            //width = prob*20+2;
+
+            rgb[0] = red;
+            rgb[1] = green;
+            rgb[2] = blue;
+            box b = dets[i].bbox;
+            //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
+
+            // NOTE 左上角坐标和右下脚坐标
+            int left  = (b.x-b.w/2.)*im.w;
+            int top   = (b.y-b.h/2.)*im.h;
+            int right = (b.x+b.w/2.)*im.w;
+            int bot   = (b.y+b.h/2.)*im.h;
+
+            if(left < 0) left = 0;
+            if(right > im.w-1) right = im.w-1;
+            if(top < 0) top = 0;
+            if(bot > im.h-1) bot = im.h-1;
+            
+            // 输出坐标.
+            printf("left, top, right, bot：%d %d %d %d\n", left, top, right, bot);
+            
+
+            // 绘制边框.
+            draw_box_width(im, left, top, right, bot, width, red, green, blue);
+            // 绘制标签.
+            if (alphabet) 
+            {
+                image label = get_label(alphabet, labelstr, (im.h*.03));
+                draw_label(im, top + width, left, label, rgb);
+                free_image(label);
+            }
+
+            if (dets[i].mask)
+            {
                 image mask = float_to_image(14, 14, 1, dets[i].mask);
                 image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
                 image tmask = threshold_image(resized_mask, .5);

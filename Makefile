@@ -19,6 +19,9 @@ ALIB=libdarknet.a
 EXEC=darknet
 OBJDIR=./obj/
 
+
+#INCLUDES = -I/home/wu/soft/opencv-3.2.0/build/installed/share/OpenCV
+
 CC=gcc
 CPP=g++
 NVCC=nvcc 

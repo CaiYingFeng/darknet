@@ -516,6 +516,10 @@ typedef struct{
     float x, y, w, h;
 } box;
 
+typedef struct{
+    float class_id, x_min, y_min, w, h, p;
+} det_box;
+
 typedef struct detection{
     box bbox;
     int classes;
@@ -733,6 +737,8 @@ data load_all_cifar10();
 box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
 void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
+void draw_save_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, FILE *save_txt);
+det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh);
 
 matrix network_predict_data(network *net, data test);
 image **load_alphabet();

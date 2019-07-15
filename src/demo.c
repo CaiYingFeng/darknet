@@ -9,6 +9,11 @@
 #include "demo.h"
 #include <sys/time.h>
 
+#include "darknet.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #define DEMO 1
 
 #ifdef OPENCV
@@ -34,6 +39,7 @@ static float *avg;
 static int demo_done = 0;
 static int demo_total = 0;
 double demo_time;
+
 
 detection *get_network_boxes(network *net, int w, int h, float thresh, float hier, int *map, int relative, int *num);
 
@@ -346,4 +352,111 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }
 #endif
+det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh)
+{
+    //configure
+    char *datacfg="cfg/coco.data";
+    float hier_thresh=0.5;
+
+    // 解析 datacfg（默认为 coco.data）文件
+    list *options = read_data_cfg(datacfg);
+    // 判断 options 中是否含有 names 信息（data/coco.names），否则默认为 data/names.list
+    char *name_list = option_find_str(options, "names", "data/names.list");
+    // 获取类别名称.
+    char **names = get_labels(name_list);
+
+    // 用于显示的标签字符.
+    image **alphabet = load_alphabet();
+    // 读取网络结构，并分配权重，net包含整个网络的信息.
+    network *net = load_network(cfgfile, weightfile, 0);
+    // 将 batch 数目设置为 1，不用于训练过程，一次检测一张图片.
+    set_batch_network(net, 1);
+    srand(2222222);
+    double time;
+    // 非极大值抑制.
+    float nms=.45;
+
+    // 对图片进行resize，resize 成网络输入大小.
+    image sized = letterbox_image(im, net->w, net->h);
+    //image sized = resize_image(im, net->w, net->h);
+    //image sized2 = resize_max(im, net->w);
+    //image sized = crop_image(sized2, -((net->w - sized2.w)/2), -((net->h - sized2.h)/2), net->w, net->h);
+    //resize_network(net, sized.w, sized.h);
+    // 获得网络最后一层，在 .cfg 文件中【最后一层包含了类别的数目】.
+    layer l = net->layers[net->n-1];
+    // 传递给网络的数据.
+    float *X = sized.data;
+    time=what_time_is_it_now();
+    // 预测，网络前馈.
+    network_predict(net, X);
+    // 预测耗时.
+    printf("Predicted in %f seconds.\n",what_time_is_it_now()-time);
+    
+    int nboxes = 0;
+    // 对前面网络预测出来的结果进行解析.
+    detection *dets = get_network_boxes(net,                    /* 网络结果 */
+                                        im.w, im.h,             /* 原始图片的宽，高 */
+                                        thresh, hier_thresh,    
+                                        0, 1, 
+                                        &nboxes);               /* 候选框的数目 */
+    //printf("%d\n", nboxes);
+    //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
+    // 非极大值抑制.
+    if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
+
+    det_box *det_temp=(det_box*)calloc(nboxes,sizeof(det_box));
+    int classes=l.classes;
+    int i,j,k=0;
+    // 遍历每一个候选框.
+    for(i = 0; i < nboxes; ++i)
+    {
+        //char labelstr[4096] = {0};
+        int class = -1;
+        // 根据阈值筛选box
+        for(j = 0; j < classes; ++j)
+        {
+            if (dets[i].prob[j] > thresh)
+            {
+                if (class < 0) 
+                {
+                    class = j;
+                } 
+                box b = dets[i].bbox;
+                det_temp[k].class_id=j;
+                int x_min=(b.x-b.w/2.)*im.w;
+                int y_min=(b.y-b.h/2.)*im.h;
+                if(x_min<0) x_min =0;
+                if(y_min<0) y_min=0;
+                det_temp[k].x_min=x_min;
+                det_temp[k].y_min=y_min;
+                det_temp[k].w=b.w*im.w;
+                det_temp[k].h= b.h*im.h;
+                // 输出结果 dog: 82%
+                printf("%s: %.0f%%\n", names[j],dets[i].prob[j]*100);
+                ++k;
+            }
+        }
+        // class 为 coco.name 中的类别序号.
+        //筛选种类，到时候只需要在这里修改即可。
+        if(class >= 0)
+        {
+            // NOTE 只筛选出 "cup" 和 "bottle" 类别.
+            // if ((strcmp(names[class], "cup") != 0)&&(strcmp(names[class], "bottle") != 0))
+            //     {continue;}
+        }	
+    }
+    det_box *det_res=(det_box*)calloc(k,sizeof(det_box));
+    for(int i=0;i < k;i++){
+        det_res[i]=det_temp[i];
+    }
+
+    //释放内存
+    free_detections(dets, nboxes);
+    free_image(im);
+    free_image(sized);
+
+    return det_res;
+}
+
+
 
