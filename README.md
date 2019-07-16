@@ -11,7 +11,6 @@ char *cfgfile,
 char *weightfile,
 image im,
 float thresh
-
 ```
 + 返回数据格式
 ```c
@@ -21,7 +20,15 @@ typedef struct{
 } det_box;
 ```
 ### change log
-darknet.h增加yolo_detect函数描述，写入src/demo.c中
++ darknet.h增加yolo_detect函数描述，写入src/demo.c中
++ demo.c中默认config如下，执行会遇到路径问题，修改之后重修编译。
+- [ ] todo：将这些参数放入config文件。
+```c
+    //configure
+    char *datacfg="cfg/coco.data";
+    float hier_thresh=0.5;
+    char *name_list = option_find_str(options, "names", "data/names.list");
+```
 ### usage
 1. CMakeList链接静态库
 2. include头文件
