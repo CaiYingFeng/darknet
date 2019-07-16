@@ -1,7 +1,7 @@
 # 新增接口
 + 接口描述
 头文件：include/darknet.h
-库文件：libdarknet.a、libdarknet.a
+库文件：libdarknet.a、libdarknet.so
 ```c
 det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh)
 ```
