@@ -352,7 +352,14 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }
 #endif
-det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh)
+
+//预先加载网络
+network *get_load_network(char *cfgfile,char *weightfile)
+{
+    return load_network(cfgfile, weightfile, 0);
+}
+//开始检测
+det_box *yolo_detect(image im,network* net,float thresh)
 {
     //configure
     char *datacfg="cfg/coco.data";
@@ -368,7 +375,12 @@ det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh)
     // 用于显示的标签字符.
     image **alphabet = load_alphabet();
     // 读取网络结构，并分配权重，net包含整个网络的信息.
-    network *net = load_network(cfgfile, weightfile, 0);
+    //network *net = load_network(cfgfile, weightfile, 0);
+    if(!net)
+    {
+        fprintf(stderr, "load network firstly please.\n");
+        return NULL;
+    }
     // 将 batch 数目设置为 1，不用于训练过程，一次检测一张图片.
     set_batch_network(net, 1);
     srand(2222222);

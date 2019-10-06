@@ -738,7 +738,9 @@ box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
 void draw_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes);
 void draw_save_detections(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, FILE *save_txt);
-det_box *yolo_detect(char *cfgfile,char *weightfile,image im,float thresh);
+
+network *get_load_network(char *cfgfile,char *weightfile);  //预加载网络
+det_box *yolo_detect(image im,network* net,float thresh);   //开始检测，必须在加载网络之后
 
 matrix network_predict_data(network *net, data test);
 image **load_alphabet();
