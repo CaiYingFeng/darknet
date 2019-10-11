@@ -359,21 +359,24 @@ network *get_load_network(char *cfgfile,char *weightfile)
     return load_network(cfgfile, weightfile, 0);
 }
 //开始检测
+
 det_box *yolo_detect(image im,network* net,float thresh)
 {
     //configure
-    char *datacfg="cfg/coco.data";
     float hier_thresh=0.5;
 
+    /*
+    char *datacfg="cfg/coco.data";
     // 解析 datacfg（默认为 coco.data）文件
     list *options = read_data_cfg(datacfg);
     // 判断 options 中是否含有 names 信息（data/coco.names），否则默认为 data/names.list
     char *name_list = option_find_str(options, "names", "data/names.list");
     // 获取类别名称.
     char **names = get_labels(name_list);
-
     // 用于显示的标签字符.
     image **alphabet = load_alphabet();
+    */
+
     // 读取网络结构，并分配权重，net包含整个网络的信息.
     //network *net = load_network(cfgfile, weightfile, 0);
     if(!net)
@@ -444,7 +447,9 @@ det_box *yolo_detect(image im,network* net,float thresh)
                 det_temp[k].w=b.w*im.w;
                 det_temp[k].h= b.h*im.h;
                 // 输出结果 dog: 82%
-                printf("%s: %.0f%%\n", names[j],dets[i].prob[j]*100);
+                //class_id 82%
+                //printf("%s: %.0f%%\n", names[j],dets[i].prob[j]*100);
+                printf("class id %d: %.0f%%\n",j,dets[i].prob[j]*100);
                 ++k;
             }
         }
@@ -469,6 +474,7 @@ det_box *yolo_detect(image im,network* net,float thresh)
 
     return det_res;
 }
+
 
 
 
