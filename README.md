@@ -64,7 +64,8 @@ int main(){
     network *net=get_load_network("cfg/yolov3.cfg","/home/shy/workspace/darknet_wu/yolov3.weights");
     det_box *dets=yolo_detect(im,net,0.5);
     
-    printf("%f %f %f %f %f %f ",dets[0].class_id,dets[0].x_min,dets[0].y_min,dets[0].w,dets[0].h,dets[0].p);
+    printf("%d %d %d %d %d %d ",dets[0].class_id,dets[0].x_min,dets[0].y_min,dets[0].w,dets[0].h,dets[0].p);
+    free(dets);
     return 0;
 }
 
